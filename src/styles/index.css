@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+
+/* App background 改为纯白 */
+body {
+  background: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  body { background: #ffffff; }
+}
+
+/* 删除 bottom-fade 渐变，避免白色顶层背景 */
+
+/* Glass panel */
+.glass {
+  @apply bg-white/70 dark:bg-gray-800/60 backdrop-blur rounded-2xl border border-white/30 dark:border-gray-700/50 shadow-soft;
+}
+
+/* Pretty scrollbars (mobile keeps default) */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 999px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+}
+
+

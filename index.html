@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Pi 交易平台</title>
+    <!-- Pi SDK -->
+    <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+    <script>
+      // 从后端获取配置并初始化 Pi SDK
+      async function initPiSDK() {
+        try {
+          // 获取后端配置
+          const response = await fetch('/config/frontend');
+          const data = await response.json();
+          const config = data.data.config;
+          
+          // 确定是否使用沙盒模式
+          const isSandbox = config.piSandbox || 
+                           window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1' ||
+                           window.location.search.includes('sandbox=true');
+          
+          // 初始化 Pi SDK
+          Pi.init({ 
+            version: "2.0",
+            sandbox: isSandbox
+          });
+          
+          console.log('🔧 Pi SDK 初始化完成', {
+            sandbox: isSandbox,
+            backendConfig: config,
+            hostname: window.location.hostname
+          });
+          
+        } catch (error) {
+          console.error('❌ 获取配置失败，使用默认配置:', error);
+          
+          // 降级处理：使用默认配置
+          const fallbackSandbox = window.location.hostname === 'localhost' || 
+                                 window.location.hostname === '127.0.0.1';
+          
+          Pi.init({ 
+            version: "2.0",
+            sandbox: fallbackSandbox
+          });
+          
+          console.log('🔄 使用默认配置，沙盒模式:', fallbackSandbox);
+        }
+      }
+      
+      // 页面加载完成后初始化
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPiSDK);
+      } else {
+        initPiSDK();
+      }
+    </script>
+  </head>
+  <body class="bg-gray-50 dark:bg-gray-900">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+  </html>
+
+
