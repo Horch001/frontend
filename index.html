@@ -10,11 +10,11 @@
        // Ensure Pi SDK is loaded before initializing
        window.addEventListener('load', () => {
          if (typeof Pi !== 'undefined') {
-           Pi.init({
-             version: "2.0",
-             sandbox: false,
-             scope: ['username', 'payments']
-           });
+                       Pi.init({
+              version: "2.0",
+              sandbox: false,
+              scope: ['username', 'payments']
+            });
          } else {
            console.error('Pi SDK not loaded.');
          }

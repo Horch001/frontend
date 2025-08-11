@@ -205,6 +205,12 @@ export async function createPiPayment(paymentData) {
     
     console.log('📤 创建 Pi 支付，参数:', paymentData)
     console.log('👤 当前用户:', window.Pi.currentUser)
+    console.log('🔧 Pi SDK 状态:', {
+      hasPi: !!window.Pi,
+      hasCreatePayment: !!window.Pi.createPayment,
+      currentUser: window.Pi.currentUser,
+      appId: window.Pi.appId
+    })
     
     // 根据Pi官方文档，createPayment需要提供回调函数
     const payment = await window.Pi.createPayment({
