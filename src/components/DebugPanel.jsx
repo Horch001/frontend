@@ -8,6 +8,15 @@ export default function DebugPanel() {
     errors: [],
     logs: []
   })
+  
+  // 清除日志的函数
+  const clearLogs = () => {
+    setDebugInfo(prev => ({
+      ...prev,
+      errors: [],
+      logs: []
+    }))
+  }
 
   useEffect(() => {
     // 检查Pi SDK状态
@@ -30,7 +39,7 @@ export default function DebugPanel() {
       originalError.apply(console, args)
       setDebugInfo(prev => ({
         ...prev,
-        errors: [...prev.errors.slice(-8), { time: new Date().toLocaleTimeString(), message: args.join(' ') }]
+        errors: [...prev.errors, { time: new Date().toLocaleTimeString(), message: args.join(' ') }]
       }))
     }
 
@@ -41,7 +50,7 @@ export default function DebugPanel() {
       if (args[0]?.includes('Pi') || args[0]?.includes('🔧') || args[0]?.includes('✅') || args[0]?.includes('❌') || args[0]?.includes('🔐')) {
         setDebugInfo(prev => ({
           ...prev,
-          logs: [...prev.logs.slice(-8), { time: new Date().toLocaleTimeString(), message: args.join(' ') }]
+          logs: [...prev.logs, { time: new Date().toLocaleTimeString(), message: args.join(' ') }]
         }))
       }
     }
@@ -68,18 +77,27 @@ export default function DebugPanel() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 bg-black bg-opacity-90 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm">
+    <div className="fixed bottom-4 right-4 bg-black bg-opacity-90 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm max-h-96 overflow-hidden">
       <div className="flex justify-between items-center mb-3">
         <span className="text-sm font-bold">调试面板</span>
-        <button
-          onClick={() => setIsVisible(false)}
-          className="text-gray-400 hover:text-white"
-        >
-          ✕
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={clearLogs}
+            className="text-gray-400 hover:text-white text-xs"
+            title="清除日志"
+          >
+            🗑️
+          </button>
+          <button
+            onClick={() => setIsVisible(false)}
+            className="text-gray-400 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
       </div>
       
-      <div className="space-y-3 text-xs">
+      <div className="space-y-3 text-xs overflow-y-auto max-h-80">
         <div>
           <span className="text-gray-400">Pi SDK:</span>
           <span className={`ml-1 ${debugInfo.piSDK === 'loaded' ? 'text-green-400' : 'text-red-400'}`}>
@@ -96,11 +114,14 @@ export default function DebugPanel() {
         
         {debugInfo.errors.length > 0 && (
           <div>
-            <span className="text-gray-400">错误:</span>
-            <div className="mt-1 space-y-1 max-h-20 overflow-y-auto">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400">错误 ({debugInfo.errors.length}):</span>
+            </div>
+            <div className="mt-1 space-y-1 max-h-24 overflow-y-auto bg-red-900/20 p-2 rounded">
               {debugInfo.errors.map((error, index) => (
-                <div key={index} className="text-red-400 text-xs break-words">
-                  {error.time}: {error.message}
+                <div key={index} className="text-red-400 text-xs break-words border-b border-red-800/30 pb-1">
+                  <div className="font-mono">{error.time}</div>
+                  <div>{error.message}</div>
                 </div>
               ))}
             </div>
@@ -109,11 +130,14 @@ export default function DebugPanel() {
         
         {debugInfo.logs.length > 0 && (
           <div>
-            <span className="text-gray-400">日志:</span>
-            <div className="mt-1 space-y-1 max-h-20 overflow-y-auto">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400">日志 ({debugInfo.logs.length}):</span>
+            </div>
+            <div className="mt-1 space-y-1 max-h-24 overflow-y-auto bg-blue-900/20 p-2 rounded">
               {debugInfo.logs.map((log, index) => (
-                <div key={index} className="text-blue-400 text-xs break-words">
-                  {log.time}: {log.message}
+                <div key={index} className="text-blue-400 text-xs break-words border-b border-blue-800/30 pb-1">
+                  <div className="font-mono">{log.time}</div>
+                  <div>{log.message}</div>
                 </div>
               ))}
             </div>
