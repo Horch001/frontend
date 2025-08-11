@@ -123,10 +123,22 @@ async function authenticateWithPi() {
     console.log('✅ 获取到用户UID:', user.uid)
     console.log('✅ 获取到accessToken:', accessToken ? 'present' : 'missing')
     
-    // 构造标准化的认证数据，让后端处理用户名获取
+    // 详细记录用户数据结构
+    console.log('🔍 用户数据详细分析:', {
+      uid: user.uid,
+      userKeys: Object.keys(user),
+      userValues: user,
+      hasAccessToken: !!accessToken
+    })
+    
+    // 构造标准化的认证数据，包含所有可能的用户名字段
     const normalizedAuth = {
       user: {
         uid: user.uid,
+        // 包含所有可能的用户名字段
+        username: user.username,
+        name: user.name,
+        displayName: user.displayName,
         // 其他可能的字段
         ...user
       },
@@ -135,6 +147,9 @@ async function authenticateWithPi() {
     
     console.log('✅ 标准化后的认证数据:', {
       uid: normalizedAuth.user.uid,
+      username: normalizedAuth.user.username,
+      name: normalizedAuth.user.name,
+      displayName: normalizedAuth.user.displayName,
       hasAccessToken: !!normalizedAuth.accessToken
     })
     
@@ -191,11 +206,28 @@ export async function createPiPayment(paymentData) {
     console.log('📤 创建 Pi 支付，参数:', paymentData)
     console.log('👤 当前用户:', window.Pi.currentUser)
     
-    // 根据官方文档创建支付
+    // 根据Pi官方文档，createPayment需要提供回调函数
     const payment = await window.Pi.createPayment({
       amount: paymentData.amount,
       memo: paymentData.memo,
       metadata: paymentData.metadata || {}
+    }, {
+      onReadyForServerApproval: (paymentId) => {
+        console.log('✅ 支付准备就绪，等待服务器批准:', paymentId)
+        // 这里可以调用后端API进行支付验证
+      },
+      onReadyForServerCompletion: (paymentId, txid) => {
+        console.log('✅ 支付完成，交易ID:', txid)
+        // 这里可以调用后端API完成支付
+      },
+      onCancel: (paymentId) => {
+        console.log('❌ 用户取消支付:', paymentId)
+        // 这里可以处理用户取消支付
+      },
+      onError: (error, payment) => {
+        console.error('❌ 支付错误:', error, payment)
+        // 这里可以处理支付错误
+      }
     })
     
     console.log('✅ Pi 支付创建成功:', payment)
@@ -212,6 +244,8 @@ export async function createPiPayment(paymentData) {
       userMessage = 'Pi SDK 未加载，请刷新页面重试'
     } else if (error.message?.includes('认证失败')) {
       userMessage = 'Pi 认证失败，请确保已登录 Pi 账户'
+    } else if (error.message?.includes('callback functions are missing')) {
+      userMessage = '支付配置错误，请重试'
     } else if (error.code === 'user_cancelled') {
       userMessage = '用户取消了支付'
     } else if (error.code === 'network_error') {
