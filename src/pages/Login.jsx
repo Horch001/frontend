@@ -16,12 +16,39 @@ export default function Login() {
 
   const handle = async () => {
     try {
+      console.log('🔐 开始登录流程...')
+      
+      // 检查Pi SDK状态
+      if (typeof window !== 'undefined' && window.Pi) {
+        console.log('✅ Pi SDK 已加载')
+      } else {
+        throw new Error('Pi SDK 未加载，请刷新页面重试')
+      }
+      
       const { token, user } = await loginWithPi()
+      console.log('✅ 登录成功，用户信息:', user)
+      
       login(token, user)
       nav('/')
     } catch (error) {
-      console.error('登录失败:', error)
-      alert(`登录失败: ${error.message || '未知错误'}`)
+      console.error('❌ 登录失败:', error)
+      
+      // 提供更详细的错误信息
+      let errorMessage = '登录失败，请重试'
+      
+      if (error.message?.includes('Pi SDK 未加载')) {
+        errorMessage = 'Pi SDK 未加载，请刷新页面重试'
+      } else if (error.message?.includes('请在 Pi 浏览器中')) {
+        errorMessage = '请在 Pi 浏览器中打开此页面进行登录'
+      } else if (error.message?.includes('认证失败')) {
+        errorMessage = 'Pi 认证失败，请确保已登录 Pi 账户'
+      } else if (error.message?.includes('网络')) {
+        errorMessage = '网络连接失败，请检查网络后重试'
+      } else if (error.message?.includes('操作失败')) {
+        errorMessage = '登录操作失败，请重试或刷新页面'
+      }
+      
+      alert(errorMessage)
     }
   }
 
