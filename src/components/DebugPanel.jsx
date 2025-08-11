@@ -30,7 +30,7 @@ export default function DebugPanel() {
       originalError.apply(console, args)
       setDebugInfo(prev => ({
         ...prev,
-        errors: [...prev.errors.slice(-4), { time: new Date().toLocaleTimeString(), message: args.join(' ') }]
+        errors: [...prev.errors.slice(-8), { time: new Date().toLocaleTimeString(), message: args.join(' ') }]
       }))
     }
 
@@ -38,10 +38,10 @@ export default function DebugPanel() {
     const originalLog = console.log
     console.log = (...args) => {
       originalLog.apply(console, args)
-      if (args[0]?.includes('Pi') || args[0]?.includes('🔧') || args[0]?.includes('✅') || args[0]?.includes('❌')) {
+      if (args[0]?.includes('Pi') || args[0]?.includes('🔧') || args[0]?.includes('✅') || args[0]?.includes('❌') || args[0]?.includes('🔐')) {
         setDebugInfo(prev => ({
           ...prev,
-          logs: [...prev.logs.slice(-4), { time: new Date().toLocaleTimeString(), message: args.join(' ') }]
+          logs: [...prev.logs.slice(-8), { time: new Date().toLocaleTimeString(), message: args.join(' ') }]
         }))
       }
     }
@@ -68,8 +68,8 @@ export default function DebugPanel() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 bg-black bg-opacity-90 text-white p-3 rounded-lg shadow-lg z-50 max-w-xs">
-      <div className="flex justify-between items-center mb-2">
+    <div className="fixed bottom-4 right-4 bg-black bg-opacity-90 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm">
+      <div className="flex justify-between items-center mb-3">
         <span className="text-sm font-bold">调试面板</span>
         <button
           onClick={() => setIsVisible(false)}
@@ -79,7 +79,7 @@ export default function DebugPanel() {
         </button>
       </div>
       
-      <div className="space-y-2 text-xs">
+      <div className="space-y-3 text-xs">
         <div>
           <span className="text-gray-400">Pi SDK:</span>
           <span className={`ml-1 ${debugInfo.piSDK === 'loaded' ? 'text-green-400' : 'text-red-400'}`}>
@@ -97,10 +97,10 @@ export default function DebugPanel() {
         {debugInfo.errors.length > 0 && (
           <div>
             <span className="text-gray-400">错误:</span>
-            <div className="mt-1 space-y-1">
+            <div className="mt-1 space-y-1 max-h-20 overflow-y-auto">
               {debugInfo.errors.map((error, index) => (
-                <div key={index} className="text-red-400 text-xs">
-                  {error.time}: {error.message.substring(0, 50)}...
+                <div key={index} className="text-red-400 text-xs break-words">
+                  {error.time}: {error.message}
                 </div>
               ))}
             </div>
@@ -110,10 +110,10 @@ export default function DebugPanel() {
         {debugInfo.logs.length > 0 && (
           <div>
             <span className="text-gray-400">日志:</span>
-            <div className="mt-1 space-y-1">
+            <div className="mt-1 space-y-1 max-h-20 overflow-y-auto">
               {debugInfo.logs.map((log, index) => (
-                <div key={index} className="text-blue-400 text-xs">
-                  {log.time}: {log.message.substring(0, 50)}...
+                <div key={index} className="text-blue-400 text-xs break-words">
+                  {log.time}: {log.message}
                 </div>
               ))}
             </div>

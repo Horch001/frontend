@@ -102,6 +102,11 @@ function handlePiError(error, context) {
   async function authenticateWithPi() {
     try {
       console.log('🔐 开始 Pi 认证...')
+      console.log('🔍 当前Pi SDK状态:', {
+        hasPi: !!window.Pi,
+        hasAuthenticate: !!window.Pi?.authenticate,
+        currentUser: window.Pi?.currentUser
+      })
       
       // 根据官方文档，只请求 payments 权限
       const auth = await window.Pi.authenticate(['payments'], onIncompletePaymentFound)
@@ -122,6 +127,13 @@ function handlePiError(error, context) {
       return auth
     } catch (error) {
       console.error('❌ Pi 认证失败:', error)
+      console.error('❌ 错误详情:', {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      })
+      
       const errorInfo = handlePiError(error, '认证')
       throw new Error(errorInfo.userMessage)
     }
