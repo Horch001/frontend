@@ -70,13 +70,26 @@ export default function Profile() {
             const auth = await window.Pi.authenticate(['payments'])
             console.log('✅ 用户重新认证成功:', auth)
             
-            // 等待一下让Pi SDK更新状态
-            await new Promise(resolve => setTimeout(resolve, 1000))
+            // 等待Pi SDK更新状态，最多等待5秒
+            let attempts = 0
+            const maxAttempts = 10
+            while (!window.Pi.currentUser && attempts < maxAttempts) {
+              console.log(`⏳ 等待Pi SDK状态更新... (${attempts + 1}/${maxAttempts})`)
+              await new Promise(resolve => setTimeout(resolve, 500))
+              attempts++
+            }
             
             // 再次检查认证状态
             if (!window.Pi.currentUser) {
-              alert('Pi 认证状态异常，请刷新页面重试')
-              return
+              console.error('❌ Pi SDK状态更新失败，尝试手动设置')
+              // 尝试手动设置currentUser
+              if (auth && auth.user) {
+                window.Pi.currentUser = auth.user
+                console.log('✅ 手动设置currentUser成功')
+              } else {
+                alert('Pi 认证状态异常，请刷新页面重试')
+                return
+              }
             }
           } catch (authError) {
             console.error('❌ Pi 重新认证失败:', authError)
@@ -197,13 +210,26 @@ export default function Profile() {
             const auth = await window.Pi.authenticate(['payments'])
             console.log('✅ 用户重新认证成功:', auth)
             
-            // 等待一下让Pi SDK更新状态
-            await new Promise(resolve => setTimeout(resolve, 2000))
+            // 等待Pi SDK更新状态，最多等待5秒
+            let attempts = 0
+            const maxAttempts = 10
+            while (!window.Pi.currentUser && attempts < maxAttempts) {
+              console.log(`⏳ 等待Pi SDK状态更新... (${attempts + 1}/${maxAttempts})`)
+              await new Promise(resolve => setTimeout(resolve, 500))
+              attempts++
+            }
             
             // 再次检查认证状态
             if (!window.Pi.currentUser) {
-              alert('Pi 认证状态异常，请刷新页面重试')
-              return
+              console.error('❌ Pi SDK状态更新失败，尝试手动设置')
+              // 尝试手动设置currentUser
+              if (auth && auth.user) {
+                window.Pi.currentUser = auth.user
+                console.log('✅ 手动设置currentUser成功')
+              } else {
+                alert('Pi 认证状态异常，请刷新页面重试')
+                return
+              }
             }
           } catch (authError) {
             console.error('❌ Pi 重新认证失败:', authError)
