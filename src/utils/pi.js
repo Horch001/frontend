@@ -111,20 +111,69 @@ function handlePiError(error, context) {
       // 根据官方文档，只请求 payments 权限
       const auth = await window.Pi.authenticate(['payments'], onIncompletePaymentFound)
       
-      console.log('✅ Pi 认证成功:', {
-        user: auth.user,
-        accessToken: auth.accessToken ? 'present' : 'missing',
-        currentUser: auth.currentUser
+      console.log('✅ Pi 认证成功，完整数据结构:', JSON.stringify(auth, null, 2))
+      
+      // 详细检查认证数据结构
+      console.log('🔍 认证数据详细分析:', {
+        hasAuth: !!auth,
+        hasUser: !!auth?.user,
+        hasCurrentUser: !!auth?.currentUser,
+        userKeys: auth?.user ? Object.keys(auth.user) : 'no user',
+        currentUserKeys: auth?.currentUser ? Object.keys(auth.currentUser) : 'no currentUser',
+        userUsername: auth?.user?.username,
+        currentUserUsername: auth?.currentUser?.username,
+        userUid: auth?.user?.uid,
+        currentUserUid: auth?.currentUser?.uid
       })
       
-      // 验证用户名是否存在
-      if (!auth.user || !auth.user.username) {
-        console.error('❌ Pi 认证数据中缺少用户名:', auth)
-        throw new Error('Pi 认证数据中缺少用户名信息')
+      // 尝试从多个位置获取用户名
+      let username = null
+      let uid = null
+      
+      if (auth?.user?.username) {
+        username = auth.user.username
+        uid = auth.user.uid
+        console.log('✅ 从 auth.user 获取到用户名:', username)
+      } else if (auth?.currentUser?.username) {
+        username = auth.currentUser.username
+        uid = auth.currentUser.uid
+        console.log('✅ 从 auth.currentUser 获取到用户名:', username)
+      } else if (auth?.user?.uid) {
+        uid = auth.user.uid
+        username = `user_${uid}` // 使用UID作为用户名
+        console.log('⚠️ 未找到用户名，使用UID作为用户名:', username)
+      } else if (auth?.currentUser?.uid) {
+        uid = auth.currentUser.uid
+        username = `user_${uid}` // 使用UID作为用户名
+        console.log('⚠️ 未找到用户名，使用UID作为用户名:', username)
       }
       
-      console.log('✅ 确认用户名存在:', auth.user.username)
-      return auth
+      if (!username || !uid) {
+        console.error('❌ 无法获取用户名或UID:', auth)
+        throw new Error('Pi 认证数据中缺少用户信息')
+      }
+      
+      // 构造标准化的用户数据
+      const normalizedAuth = {
+        ...auth,
+        user: {
+          ...auth.user,
+          username: username,
+          uid: uid
+        },
+        currentUser: {
+          ...auth.currentUser,
+          username: username,
+          uid: uid
+        }
+      }
+      
+      console.log('✅ 标准化后的认证数据:', {
+        username: normalizedAuth.user.username,
+        uid: normalizedAuth.user.uid
+      })
+      
+      return normalizedAuth
     } catch (error) {
       console.error('❌ Pi 认证失败:', error)
       console.error('❌ 错误详情:', {
