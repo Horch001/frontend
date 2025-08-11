@@ -172,8 +172,13 @@ export async function loginWithPi() {
   if (shouldUseMock()) {
     console.log('🖥️ 桌面开发环境：使用模拟登录')
     const mock = `pi:${Date.now()}:guest`
-    const res = await api.post('/auth/pi/login', { piToken: mock })
-    return res.data.data
+    try {
+      const res = await api.post('/auth/pi/login', { piToken: mock })
+      return res.data.data
+    } catch (error) {
+      console.error('❌ 模拟登录失败:', error)
+      throw new Error(`模拟登录失败: ${error.response?.data?.message || error.message}`)
+    }
   }
 
   // Pi 浏览器环境：使用真实 SDK
@@ -188,12 +193,17 @@ export async function loginWithPi() {
       const piToken = `pi:${auth.user.uid}:${auth.user.username || 'piuser'}`
       
       // 发送到后端验证
-      const res = await api.post('/auth/pi/login', { 
-        piToken,
-        authData: auth // 包含完整的认证数据
-      })
-      
-      return res.data.data
+      try {
+        const res = await api.post('/auth/pi/login', { 
+          piToken,
+          authData: auth // 包含完整的认证数据
+        })
+        
+        return res.data.data
+      } catch (error) {
+        console.error('❌ 后端验证失败:', error)
+        throw new Error(`后端验证失败: ${error.response?.data?.message || error.message}`)
+      }
     }
   } catch (error) {
     console.error('❌ Pi SDK 登录失败:', error)
@@ -204,8 +214,13 @@ export async function loginWithPi() {
   // 兜底：使用模拟登录
   console.log('🛡️ 兜底方案：使用模拟登录')
   const mock = `pi:${Date.now()}:guest`
-  const res = await api.post('/auth/pi/login', { piToken: mock })
-  return res.data.data
+  try {
+    const res = await api.post('/auth/pi/login', { piToken: mock })
+    return res.data.data
+  } catch (error) {
+    console.error('❌ 兜底登录失败:', error)
+    throw new Error(`兜底登录失败: ${error.response?.data?.message || error.message}`)
+  }
 }
 
 // 导出环境检测函数，供其他地方使用

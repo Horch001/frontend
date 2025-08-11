@@ -15,9 +15,14 @@ export default function Login() {
   }, [])
 
   const handle = async () => {
-    const { token, user } = await loginWithPi()
-    login(token, user)
-    nav('/')
+    try {
+      const { token, user } = await loginWithPi()
+      login(token, user)
+      nav('/')
+    } catch (error) {
+      console.error('登录失败:', error)
+      alert(`登录失败: ${error.message || '未知错误'}`)
+    }
   }
 
   const toggleMockMode = () => {
