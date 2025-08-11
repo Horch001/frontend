@@ -49,8 +49,8 @@ export default function ProductDetail() {
     loadProduct()
   }, [id, location.pathname, nav, showToast])
 
-  // 使用真实 Pi 支付购买商品
-  const buy = async () => {
+  // 购买商品（支持余额支付和Pi支付）
+  const buy = async (paymentMethod = 'balance') => {
     if (!token) return nav('/login')
     
     try {
@@ -62,54 +62,65 @@ export default function ProductDetail() {
       console.log('🛒 开始购买商品:', {
         productId: id,
         pricePi,
-        pricePoints: p.pricePoints
+        pricePoints: p.pricePoints,
+        paymentMethod
       })
 
-      // 检查是否为 Pi 浏览器环境
-      if (isPiBrowser()) {
+      if (paymentMethod === 'pi' && isPiBrowser()) {
         console.log('📱 Pi 浏览器环境：使用真实支付')
         
-        // 1. 创建 Pi 支付
-        const payment = await createPiPayment({
-          amount: pricePi,
-          memo: `购买商品：${p.title}`,
-          metadata: {
+        try {
+          // 1. 创建 Pi 支付
+          const payment = await createPiPayment({
+            amount: pricePi,
+            memo: `购买商品：${p.title}`,
+            metadata: {
+              productId: id,
+              productTitle: p.title,
+              pricePoints: p.pricePoints
+            }
+          })
+          
+          console.log('✅ Pi 支付创建成功:', payment)
+          
+          // 2. 完成支付（用户确认后）
+          const result = await completePiPayment(payment)
+          console.log('✅ Pi 支付完成:', result)
+          
+          // 3. 支付成功后创建订单
+          const orderRes = await api.post('/orders', { 
             productId: id,
-            productTitle: p.title,
-            pricePoints: p.pricePoints
-          }
-        })
+            paymentId: payment.identifier,
+            paymentData: {
+              identifier: payment.identifier,
+              amount: payment.amount,
+              memo: payment.memo,
+              metadata: payment.metadata,
+              status: result.status,
+              transaction: result.transaction
+            }
+          })
+          
+          showToast('购买成功！', 'success')
+          nav(`/orders/${orderRes.data.data.order._id}`)
+        } catch (piError) {
+          console.error('❌ Pi 支付失败:', piError)
+          showToast(`Pi 支付失败: ${piError.message || '未知错误'}`, 'error')
+        }
         
-        console.log('✅ Pi 支付创建成功:', payment)
+      } else if (paymentMethod === 'balance') {
+        console.log('💰 使用余额支付')
         
-        // 2. 完成支付（用户确认后）
-        const result = await completePiPayment(payment)
-        console.log('✅ Pi 支付完成:', result)
-        
-        // 3. 支付成功后创建订单
-        const orderRes = await api.post('/orders', { 
+        // 使用余额支付
+        const res = await api.post('/orders', { 
           productId: id,
-          paymentId: payment.identifier,
-          paymentData: {
-            identifier: payment.identifier,
-            amount: payment.amount,
-            memo: payment.memo,
-            metadata: payment.metadata,
-            status: result.status,
-            transaction: result.transaction
-          }
+          paymentMethod: 'balance'
         })
-        
-        showToast('购买成功！', 'success')
-        nav(`/orders/${orderRes.data.data.order._id}`)
-        
-      } else {
-        console.log('🖥️ 非 Pi 浏览器环境：使用模拟支付')
-        
-        // 非 Pi 浏览器环境，使用模拟支付
-        const res = await api.post('/orders', { productId: id })
         showToast('购买成功！', 'success')
         nav(`/orders/${res.data.data.order._id}`)
+        
+      } else {
+        showToast('请在 Pi 浏览器中使用 Pi 支付，或选择余额支付', 'error')
       }
       
     } catch (error) {
@@ -341,24 +352,39 @@ export default function ProductDetail() {
           
                         {/* 快速购买按钮 */}
               {p.isActive && p.stock > 0 && (
-            <div className="flex space-x-3">
-              <button 
-                onClick={contactSeller}
-                className="flex-1 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                💬 联系卖家
-              </button>
-              <button 
-                onClick={buy} 
-                disabled={!p.stock || p.stock <= 0}
-                className={`flex-1 py-2.5 rounded-xl font-medium shadow-lg transition-all duration-200 ${
-                  p.stock && p.stock > 0
-                    ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:shadow-xl'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                {p.stock && p.stock > 0 ? '🛒 立即购买' : '📦 库存不足'}
-              </button>
+            <div className="space-y-3">
+              <div className="flex space-x-3">
+                <button 
+                  onClick={contactSeller}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  💬 联系卖家
+                </button>
+                <button 
+                  onClick={() => buy('balance')} 
+                  disabled={!p.stock || p.stock <= 0}
+                  className={`flex-1 py-2.5 rounded-xl font-medium shadow-lg transition-all duration-200 ${
+                    p.stock && p.stock > 0
+                      ? 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:shadow-xl'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {p.stock && p.stock > 0 ? '💰 余额支付' : '📦 库存不足'}
+                </button>
+              </div>
+              {isPiBrowser() && (
+                <button 
+                  onClick={() => buy('pi')} 
+                  disabled={!p.stock || p.stock <= 0}
+                  className={`w-full py-2.5 rounded-xl font-medium shadow-lg transition-all duration-200 ${
+                    p.stock && p.stock > 0
+                      ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:shadow-xl'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {p.stock && p.stock > 0 ? '🛒 Pi 钱包支付' : '📦 库存不足'}
+                </button>
+              )}
             </div>
           )}
         </div>

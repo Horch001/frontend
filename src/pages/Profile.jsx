@@ -151,40 +151,45 @@ export default function Profile() {
       if (isPiBrowser()) {
         console.log('📱 Pi 浏览器环境：使用真实支付充值')
         
-        // 1. 创建 Pi 支付
-        const payment = await createPiPayment({
-          amount: pi,
-          memo: `账户充值：${pi} π`,
-          metadata: {
-            type: 'recharge',
-            amountPi: pi
-          }
-        })
-        
-        console.log('✅ Pi 支付创建成功:', payment)
-        
-        // 2. 完成支付（用户确认后）
-        const result = await completePiPayment(payment)
-        console.log('✅ Pi 支付完成:', result)
-        
-        // 3. 支付成功后调用后端充值接口
-        await api.post('/users/recharge', { 
-          amountPi: pi,
-          paymentId: payment.identifier,
-          paymentData: {
-            identifier: payment.identifier,
-            amount: payment.amount,
-            memo: payment.memo,
-            metadata: payment.metadata,
-            status: result.status,
-            transaction: result.transaction
-          }
-        })
-        
-        alert('充值成功！')
-        setRechargePi('')
-        await load()
-        setShowPiRechargeModal(false)
+        try {
+          // 1. 创建 Pi 支付
+          const payment = await createPiPayment({
+            amount: pi,
+            memo: `账户充值：${pi} π`,
+            metadata: {
+              type: 'recharge',
+              amountPi: pi
+            }
+          })
+          
+          console.log('✅ Pi 支付创建成功:', payment)
+          
+          // 2. 完成支付（用户确认后）
+          const result = await completePiPayment(payment)
+          console.log('✅ Pi 支付完成:', result)
+          
+          // 3. 支付成功后调用后端充值接口
+          await api.post('/users/recharge', { 
+            amountPi: pi,
+            paymentId: payment.identifier,
+            paymentData: {
+              identifier: payment.identifier,
+              amount: payment.amount,
+              memo: payment.memo,
+              metadata: payment.metadata,
+              status: result.status,
+              transaction: result.transaction
+            }
+          })
+          
+          alert('充值成功！')
+          setRechargePi('')
+          await load()
+          setShowPiRechargeModal(false)
+        } catch (piError) {
+          console.error('❌ Pi 支付失败:', piError)
+          alert(`Pi 支付失败: ${piError.message || '未知错误'}`)
+        }
       } else {
         // 非 Pi 浏览器环境，提示用户
         alert('请在 Pi 浏览器中打开此页面进行充值')
