@@ -98,101 +98,60 @@ function handlePiError(error, context) {
   }
 }
 
-  // 真实的 Pi 登录
-  async function authenticateWithPi() {
-    try {
-      console.log('🔐 开始 Pi 认证...')
-      console.log('🔍 当前Pi SDK状态:', {
-        hasPi: !!window.Pi,
-        hasAuthenticate: !!window.Pi?.authenticate,
-        currentUser: window.Pi?.currentUser
-      })
-      
-      // 根据官方文档，只请求 payments 权限
-      const auth = await window.Pi.authenticate(['payments'], onIncompletePaymentFound)
-      
-      console.log('✅ Pi 认证成功，完整数据结构:', JSON.stringify(auth, null, 2))
-      
-      // 详细检查认证数据结构
-      console.log('🔍 认证数据详细分析:', {
-        hasAuth: !!auth,
-        hasUser: !!auth?.user,
-        hasCurrentUser: !!auth?.currentUser,
-        userKeys: auth?.user ? Object.keys(auth.user) : 'no user',
-        currentUserKeys: auth?.currentUser ? Object.keys(auth.currentUser) : 'no currentUser',
-        userUsername: auth?.user?.username,
-        currentUserUsername: auth?.currentUser?.username,
-        userUid: auth?.user?.uid,
-        currentUserUid: auth?.currentUser?.uid
-      })
-      
-      // 尝试从多个位置获取用户名
-      let username = null
-      let uid = null
-      
-      // 首先尝试获取UID
-      if (auth?.user?.uid) {
-        uid = auth.user.uid
-        console.log('✅ 从 auth.user 获取到UID:', uid)
-      } else if (auth?.currentUser?.uid) {
-        uid = auth.currentUser.uid
-        console.log('✅ 从 auth.currentUser 获取到UID:', uid)
-      }
-      
-      // 然后尝试获取用户名
-      if (auth?.user?.username) {
-        username = auth.user.username
-        console.log('✅ 从 auth.user 获取到用户名:', username)
-      } else if (auth?.currentUser?.username) {
-        username = auth.currentUser.username
-        console.log('✅ 从 auth.currentUser 获取到用户名:', username)
-      }
-      
-      // 如果Pi SDK没有提供用户名，我们需要从后端获取
-      if (!username && uid) {
-        console.log('⚠️ Pi SDK未提供用户名，将使用UID作为临时用户名，后端会处理真实用户名获取')
-        username = `temp_${uid}` // 临时用户名，后端会替换为真实用户名
-      }
-      
-      if (!username || !uid) {
-        console.error('❌ 无法获取用户名或UID:', auth)
-        throw new Error('Pi 认证数据中缺少用户信息')
-      }
-      
-      // 构造标准化的用户数据
-      const normalizedAuth = {
-        ...auth,
-        user: {
-          ...auth.user,
-          username: username,
-          uid: uid
-        },
-        currentUser: {
-          ...auth.currentUser,
-          username: username,
-          uid: uid
-        }
-      }
-      
-      console.log('✅ 标准化后的认证数据:', {
-        username: normalizedAuth.user.username,
-        uid: normalizedAuth.user.uid
-      })
-      
-      return normalizedAuth
-    } catch (error) {
-      console.error('❌ Pi 认证失败:', error)
-      console.error('❌ 错误详情:', {
-        name: error.name,
-        message: error.message,
-        code: error.code,
-        stack: error.stack
-      })
-      
-      const errorInfo = handlePiError(error, '认证')
-      throw new Error(errorInfo.userMessage)
+// 真实的 Pi 登录
+async function authenticateWithPi() {
+  try {
+    console.log('🔐 开始 Pi 认证...')
+    console.log('🔍 当前Pi SDK状态:', {
+      hasPi: !!window.Pi,
+      hasAuthenticate: !!window.Pi?.authenticate,
+      currentUser: window.Pi?.currentUser
+    })
+    
+    // 根据Pi官方文档，请求payments权限
+    const auth = await window.Pi.authenticate(['payments'], onIncompletePaymentFound)
+    
+    console.log('✅ Pi 认证成功，完整数据结构:', JSON.stringify(auth, null, 2))
+    
+    // 根据Pi官方文档，auth结构为 { user, accessToken }
+    const { user, accessToken } = auth
+    
+    if (!user || !user.uid) {
+      throw new Error('Pi 认证数据中缺少用户信息')
     }
+    
+    console.log('✅ 获取到用户UID:', user.uid)
+    console.log('✅ 获取到accessToken:', accessToken ? 'present' : 'missing')
+    
+    // 构造标准化的认证数据，让后端处理用户名获取
+    const normalizedAuth = {
+      user: {
+        uid: user.uid,
+        // 其他可能的字段
+        ...user
+      },
+      accessToken: accessToken
+    }
+    
+    console.log('✅ 标准化后的认证数据:', {
+      uid: normalizedAuth.user.uid,
+      hasAccessToken: !!normalizedAuth.accessToken
+    })
+    
+    return normalizedAuth
+  } catch (error) {
+    console.error('❌ Pi 认证失败:', error)
+    console.error('❌ 错误详情:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    })
+    
+    const errorInfo = handlePiError(error, '认证')
+    throw new Error(errorInfo.userMessage)
   }
+}
 
 // 处理未完成的支付
 function onIncompletePaymentFound(payment) {
@@ -302,12 +261,11 @@ export async function loginWithPi() {
     const auth = await authenticateWithPi()
     
     // 构造 token 格式
-    const piToken = `pi:${auth.user.uid}:${auth.user.username || 'piuser'}`
+    const piToken = `pi:${auth.user.uid}:temp`
     
     console.log('📤 发送Pi认证数据到后端:', {
       piToken,
-      authData: auth,
-      user: auth.user
+      authData: auth
     })
     
     // 发送到后端验证

@@ -57,6 +57,39 @@ export default function Profile() {
       if (isPiBrowser()) {
         console.log('📱 Pi 浏览器环境：使用真实支付缴纳押金')
         
+        // 先检查 Pi SDK 状态
+        if (!window.Pi) {
+          alert('Pi SDK 未加载，请刷新页面重试')
+          return
+        }
+        
+        // 检查用户是否已认证，如果没有则重新认证
+        if (!window.Pi.currentUser) {
+          console.log('⚠️ 用户未认证，重新进行Pi认证...')
+          try {
+            const auth = await window.Pi.authenticate(['payments'])
+            console.log('✅ 用户重新认证成功:', auth)
+            
+            // 等待一下让Pi SDK更新状态
+            await new Promise(resolve => setTimeout(resolve, 1000))
+            
+            // 再次检查认证状态
+            if (!window.Pi.currentUser) {
+              alert('Pi 认证状态异常，请刷新页面重试')
+              return
+            }
+          } catch (authError) {
+            console.error('❌ Pi 重新认证失败:', authError)
+            alert('Pi 认证失败，请确保已登录 Pi 账户')
+            return
+          }
+        }
+        
+        console.log('🔍 当前Pi认证状态:', {
+          hasCurrentUser: !!window.Pi.currentUser,
+          currentUser: window.Pi.currentUser
+        })
+        
         // 计算需要缴纳的押金数量
         const currentDeposit = me.depositPoints || 0
         const requiredDeposit = SELLER_DEPOSIT_PI * POINTS_PER_PI
@@ -157,17 +190,32 @@ export default function Profile() {
           return
         }
         
-        // 检查用户是否已认证
+        // 检查用户是否已认证，如果没有则重新认证
         if (!window.Pi.currentUser) {
-          alert('请先登录 Pi 账户，点击确定进行认证')
+          console.log('⚠️ 用户未认证，重新进行Pi认证...')
           try {
-            await window.Pi.authenticate(['payments'])
-            console.log('✅ 用户认证成功')
+            const auth = await window.Pi.authenticate(['payments'])
+            console.log('✅ 用户重新认证成功:', auth)
+            
+            // 等待一下让Pi SDK更新状态
+            await new Promise(resolve => setTimeout(resolve, 2000))
+            
+            // 再次检查认证状态
+            if (!window.Pi.currentUser) {
+              alert('Pi 认证状态异常，请刷新页面重试')
+              return
+            }
           } catch (authError) {
+            console.error('❌ Pi 重新认证失败:', authError)
             alert('Pi 认证失败，请确保已登录 Pi 账户')
             return
           }
         }
+        
+        console.log('🔍 当前Pi认证状态:', {
+          hasCurrentUser: !!window.Pi.currentUser,
+          currentUser: window.Pi.currentUser
+        })
         
         try {
           // 1. 创建 Pi 支付
