@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 export default function DebugPanel() {
   const [isVisible, setIsVisible] = useState(false)
@@ -7,6 +7,12 @@ export default function DebugPanel() {
     currentUser: 'unknown',
     errors: [],
     logs: []
+  })
+  
+  // 使用ref来保存原始console函数，避免重复重写
+  const originalConsole = useRef({
+    error: console.error,
+    log: console.log
   })
   
   // 清除日志的函数
@@ -21,20 +27,18 @@ export default function DebugPanel() {
   useEffect(() => {
     // 检查Pi SDK状态
     const checkPiSDK = () => {
-      const info = {
+      setDebugInfo(prev => ({
+        ...prev,
         piSDK: typeof window !== 'undefined' && window.Pi ? 'loaded' : 'not loaded',
-        currentUser: typeof window !== 'undefined' && window.Pi && window.Pi.currentUser ? 'authenticated' : 'not authenticated',
-        errors: debugInfo.errors,
-        logs: debugInfo.logs
-      }
-      setDebugInfo(info)
+        currentUser: typeof window !== 'undefined' && window.Pi && window.Pi.currentUser ? 'authenticated' : 'not authenticated'
+      }))
     }
 
     // 监听Pi SDK状态变化
     const interval = setInterval(checkPiSDK, 1000)
     
     // 重写console.error来捕获错误
-    const originalError = console.error
+    const originalError = originalConsole.current.error
     console.error = (...args) => {
       originalError.apply(console, args)
       setDebugInfo(prev => ({
@@ -44,13 +48,14 @@ export default function DebugPanel() {
     }
 
     // 重写console.log来捕获日志
-    const originalLog = console.log
+    const originalLog = originalConsole.current.log
     console.log = (...args) => {
       originalLog.apply(console, args)
-      if (args[0]?.includes('Pi') || args[0]?.includes('🔧') || args[0]?.includes('✅') || args[0]?.includes('❌') || args[0]?.includes('🔐')) {
+      const message = args.join(' ')
+      if (message.includes('Pi') || message.includes('🔧') || message.includes('✅') || message.includes('❌') || message.includes('🔐')) {
         setDebugInfo(prev => ({
           ...prev,
-          logs: [...prev.logs, { time: new Date().toLocaleTimeString(), message: args.join(' ') }]
+          logs: [...prev.logs, { time: new Date().toLocaleTimeString(), message }]
         }))
       }
     }
@@ -62,7 +67,7 @@ export default function DebugPanel() {
       console.error = originalError
       console.log = originalLog
     }
-  }, [])
+  }, []) // 保持空依赖数组，但使用ref避免重复重写
 
   if (!isVisible) {
     return (
@@ -77,7 +82,7 @@ export default function DebugPanel() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 bg-black bg-opacity-90 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm max-h-96 overflow-hidden">
+    <div className="fixed bottom-4 right-4 bg-black bg-opacity-95 text-white p-4 rounded-lg shadow-lg z-50 max-w-md max-h-96 overflow-hidden">
       <div className="flex justify-between items-center mb-3">
         <span className="text-sm font-bold">调试面板</span>
         <div className="flex space-x-2">
@@ -117,7 +122,7 @@ export default function DebugPanel() {
             <div className="flex justify-between items-center">
               <span className="text-gray-400">错误 ({debugInfo.errors.length}):</span>
             </div>
-            <div className="mt-1 space-y-1 max-h-24 overflow-y-auto bg-red-900/20 p-2 rounded">
+            <div className="mt-1 space-y-1 max-h-32 overflow-y-auto bg-red-900/20 p-2 rounded">
               {debugInfo.errors.map((error, index) => (
                 <div key={index} className="text-red-400 text-xs break-words border-b border-red-800/30 pb-1">
                   <div className="font-mono">{error.time}</div>
@@ -133,7 +138,7 @@ export default function DebugPanel() {
             <div className="flex justify-between items-center">
               <span className="text-gray-400">日志 ({debugInfo.logs.length}):</span>
             </div>
-            <div className="mt-1 space-y-1 max-h-24 overflow-y-auto bg-blue-900/20 p-2 rounded">
+            <div className="mt-1 space-y-1 max-h-32 overflow-y-auto bg-blue-900/20 p-2 rounded">
               {debugInfo.logs.map((log, index) => (
                 <div key={index} className="text-blue-400 text-xs break-words border-b border-blue-800/30 pb-1">
                   <div className="font-mono">{log.time}</div>
