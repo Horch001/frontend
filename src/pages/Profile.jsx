@@ -282,6 +282,7 @@ export default function Profile() {
           console.error('❌ Pi 支付失败:', piError)
           alert(`Pi 支付失败: ${piError.message || '未知错误'}`)
           setShowPiRechargeModal(false)
+          return // 立即返回，不继续执行后续代码
         }
       } else {
         // 非 Pi 浏览器环境，提示用户

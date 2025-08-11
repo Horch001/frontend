@@ -223,9 +223,12 @@ export async function createPiPayment(paymentData) {
             metadata: paymentData.metadata
           })
           console.log('✅ 服务器批准支付成功:', response.data)
+          
+          // 后端API调用成功，Pi SDK会继续处理支付流程
         } catch (error) {
           console.error('❌ 服务器批准支付失败:', error)
-          throw new Error('支付批准失败，请重试')
+          // 不要抛出异常，而是返回错误状态，让Pi SDK处理
+          return { error: true, message: '支付批准失败，请重试' }
         }
       },
       onReadyForServerCompletion: (paymentId, txid) => {
@@ -236,6 +239,7 @@ export async function createPiPayment(paymentData) {
       },
       onError: (error, payment) => {
         console.error('❌ 支付错误:', error, payment)
+        // 记录错误但不抛出异常，让Pi SDK处理
       }
     })
     
