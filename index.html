@@ -11,7 +11,8 @@
       async function initPiSDK() {
         try {
           // 获取后端配置
-          const response = await fetch('/config/frontend');
+          const apiBase = 'https://hou.zeabur.app';
+          const response = await fetch(`${apiBase}/config/frontend`);
           const data = await response.json();
           const config = data.data.config;
           
