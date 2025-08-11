@@ -215,17 +215,12 @@ export async function createPiPayment(paymentData) {
       onReadyForServerApproval: async (paymentId) => {
         console.log('✅ 支付准备就绪，等待服务器批准:', paymentId)
         try {
-          // 调用后端API批准支付
-          const response = await api.post('/users/approve-payment', {
-            paymentId: paymentId,
-            amount: paymentData.amount,
-            memo: paymentData.memo,
-            metadata: paymentData.metadata
-          })
-          console.log('✅ 服务器批准支付成功:', response.data)
+          // 根据Pi官方文档，这里不需要做任何操作
+          // Pi SDK会自动处理支付流程
+          console.log('✅ 支付已准备就绪，等待用户确认')
         } catch (error) {
-          console.error('❌ 服务器批准支付失败:', error)
-          throw new Error('支付批准失败，请重试')
+          console.error('❌ 支付准备失败:', error)
+          throw new Error('支付准备失败，请重试')
         }
       },
       onReadyForServerCompletion: async (paymentId, txid) => {
