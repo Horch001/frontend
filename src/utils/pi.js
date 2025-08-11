@@ -206,51 +206,11 @@ export async function createPiPayment(paymentData) {
     console.log('📤 创建 Pi 支付，参数:', paymentData)
     console.log('👤 当前用户:', window.Pi.currentUser)
     
-    // 根据Pi官方文档，createPayment需要提供回调函数
+    // 根据Pi官方文档，简化支付流程
     const payment = await window.Pi.createPayment({
       amount: paymentData.amount,
       memo: paymentData.memo,
       metadata: paymentData.metadata || {}
-    }, {
-      onReadyForServerApproval: async (paymentId) => {
-        console.log('✅ 支付准备就绪，等待服务器批准:', paymentId)
-        try {
-          // 调用后端API批准支付
-          const response = await api.post('/users/approve-payment', {
-            paymentId: paymentId,
-            amount: paymentData.amount,
-            memo: paymentData.memo,
-            metadata: paymentData.metadata
-          })
-          console.log('✅ 服务器批准支付成功:', response.data)
-        } catch (error) {
-          console.error('❌ 服务器批准支付失败:', error)
-          throw new Error('支付批准失败，请重试')
-        }
-      },
-      onReadyForServerCompletion: async (paymentId, txid) => {
-        console.log('✅ 支付完成，交易ID:', txid)
-        try {
-          // 调用后端API完成支付
-          const response = await api.post('/users/complete-payment', {
-            paymentId: paymentId,
-            txid: txid,
-            amount: paymentData.amount,
-            memo: paymentData.memo,
-            metadata: paymentData.metadata
-          })
-          console.log('✅ 服务器完成支付成功:', response.data)
-        } catch (error) {
-          console.error('❌ 服务器完成支付失败:', error)
-          throw new Error('支付完成失败，请重试')
-        }
-      },
-      onCancel: (paymentId) => {
-        console.log('❌ 用户取消支付:', paymentId)
-      },
-      onError: (error, payment) => {
-        console.error('❌ 支付错误:', error, payment)
-      }
     })
     
     console.log('✅ Pi 支付创建成功:', payment)

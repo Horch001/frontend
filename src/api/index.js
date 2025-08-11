@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 
-export const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000'
+export const API_BASE = import.meta.env.VITE_API_BASE || 'https://hou.zeabur.app'
 
 export const api = axios.create({ baseURL: API_BASE })
 

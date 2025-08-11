@@ -50,6 +50,11 @@
             sandbox: isSandbox
           });
           
+          // 等待Pi SDK完全加载
+          setTimeout(() => {
+            console.log('✅ Pi SDK 完全加载完成');
+          }, 1000);
+          
           console.log('✅ Pi SDK 初始化完成', {
             sandbox: isSandbox,
             backendConfig: config,
