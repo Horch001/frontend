@@ -206,48 +206,11 @@ export async function createPiPayment(paymentData) {
     console.log('📤 创建 Pi 支付，参数:', paymentData)
     console.log('👤 当前用户:', window.Pi.currentUser)
     
-    // 根据Pi官方文档，createPayment需要提供回调函数
+    // 根据Pi官方文档，简化支付流程
     const payment = await window.Pi.createPayment({
       amount: paymentData.amount,
       memo: paymentData.memo,
       metadata: paymentData.metadata || {}
-    }, {
-      onReadyForServerApproval: async (paymentId) => {
-        console.log('✅ 支付准备就绪，等待服务器批准:', paymentId)
-        try {
-          // 根据Pi官方文档，这里不需要做任何操作
-          // Pi SDK会自动处理支付流程
-          console.log('✅ 支付已准备就绪，等待用户确认')
-        } catch (error) {
-          console.error('❌ 支付准备失败:', error)
-          throw new Error('支付准备失败，请重试')
-        }
-      },
-      onReadyForServerCompletion: async (paymentId, txid) => {
-        console.log('✅ 支付完成，交易ID:', txid)
-        try {
-          // 调用后端API完成支付
-          const response = await api.post('/users/complete-payment', {
-            paymentId: paymentId,
-            txid: txid,
-            amount: paymentData.amount,
-            memo: paymentData.memo,
-            metadata: paymentData.metadata
-          })
-          console.log('✅ 服务器完成支付成功:', response.data)
-        } catch (error) {
-          console.error('❌ 服务器完成支付失败:', error)
-          throw new Error('支付完成失败，请重试')
-        }
-      },
-      onCancel: (paymentId) => {
-        console.log('❌ 用户取消支付:', paymentId)
-        // 这里可以处理用户取消支付
-      },
-      onError: (error, payment) => {
-        console.error('❌ 支付错误:', error, payment)
-        // 这里可以处理支付错误
-      }
     })
     
     console.log('✅ Pi 支付创建成功:', payment)
@@ -283,10 +246,28 @@ export async function completePiPayment(payment) {
       throw new Error('支付信息无效')
     }
     
+    console.log('🔍 开始完成支付:', payment.identifier)
+    
     const result = await window.Pi.completePayment(payment)
     console.log('✅ Pi 支付完成:', result)
+    
+    // 支付完成后调用后端API
+    try {
+      const response = await api.post('/users/complete-payment', {
+        paymentId: payment.identifier,
+        txid: result.transaction?.txid,
+        amount: payment.amount,
+        memo: payment.memo,
+        metadata: payment.metadata
+      })
+      console.log('✅ 后端支付记录成功:', response.data)
+    } catch (backendError) {
+      console.warn('⚠️ 后端支付记录失败，但不影响支付流程:', backendError)
+    }
+    
     return result
   } catch (error) {
+    console.error('❌ Pi 支付完成失败:', error)
     const errorInfo = handlePiError(error, '支付完成')
     throw new Error(errorInfo.userMessage)
   }
