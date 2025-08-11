@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api'
+import { createPiPayment, completePiPayment, isPiBrowser } from '../utils/pi'
 
 const POINTS_PER_PI = Number(import.meta.env.VITE_POINTS_PER_PI) || 1
+const SELLER_DEPOSIT_PI = 1000 // 卖家押金要求（π币）
 
 export default function Profile() {
   const navigate = useNavigate()
@@ -48,14 +50,71 @@ export default function Profile() {
   useEffect(() => { load() }, [])
 
   const payDeposit = async () => { 
-    setLoading(true); 
-    try { 
-      await api.post('/users/deposit/pay'); 
-      await load(); 
-      setShowDepositModal(false)
-    } finally { 
-      setLoading(false) 
-    } 
+    setLoading(true)
+    
+    try {
+      // 检查是否为 Pi 浏览器环境
+      if (isPiBrowser()) {
+        console.log('📱 Pi 浏览器环境：使用真实支付缴纳押金')
+        
+        // 计算需要缴纳的押金数量
+        const currentDeposit = me.depositPoints || 0
+        const requiredDeposit = SELLER_DEPOSIT_PI * POINTS_PER_PI
+        const needDeposit = Math.max(0, requiredDeposit - currentDeposit)
+        const needDepositPi = Math.ceil(needDeposit / POINTS_PER_PI)
+        
+        if (needDepositPi <= 0) {
+          alert('押金已足够，无需再缴纳')
+          setShowDepositModal(false)
+          return
+        }
+        
+        // 1. 创建 Pi 支付
+        const payment = await createPiPayment({
+          amount: needDepositPi,
+          memo: `缴纳卖家押金：${needDepositPi} π`,
+          metadata: {
+            type: 'deposit',
+            amountPi: needDepositPi
+          }
+        })
+        
+        console.log('✅ Pi 支付创建成功:', payment)
+        
+        // 2. 完成支付（用户确认后）
+        const result = await completePiPayment(payment)
+        console.log('✅ Pi 支付完成:', result)
+        
+        // 3. 支付成功后调用后端押金接口
+        await api.post('/users/deposit/pay', {
+          paymentId: payment.identifier,
+          paymentData: {
+            identifier: payment.identifier,
+            amount: payment.amount,
+            memo: payment.memo,
+            metadata: payment.metadata,
+            status: result.status,
+            transaction: result.transaction
+          }
+        })
+        
+        alert('押金缴纳成功！')
+        await load()
+        setShowDepositModal(false)
+      } else {
+        // 非 Pi 浏览器环境，使用模拟押金
+        console.log('🖥️ 非 Pi 浏览器环境：使用模拟押金')
+        await api.post('/users/deposit/pay')
+        alert('模拟押金缴纳成功！')
+        await load()
+        setShowDepositModal(false)
+      }
+    } catch (error) {
+      console.error('❌ 押金缴纳失败:', error)
+      alert(`押金缴纳失败: ${error.message || '未知错误'}`)
+    } finally {
+      setLoading(false)
+    }
   }
   
   const refundDeposit = async () => { 
@@ -89,18 +148,60 @@ export default function Profile() {
     const pi = Number(rechargePi)
     if (!pi || pi <= 0) return
     setLoading(true)
-    try { 
-      // 这里需要调用充值接口，暂时模拟
-      await api.post('/users/recharge', { amountPi: pi }); 
-      setRechargePi(''); 
-      await load(); 
-      setShowPiRechargeModal(false)
-    } catch (e) {
-      // 如果充值接口不存在，暂时跳过
-      setRechargePi(''); 
-      setShowPiRechargeModal(false)
-    } finally { 
-      setLoading(false) 
+    
+    try {
+      // 检查是否为 Pi 浏览器环境
+      if (isPiBrowser()) {
+        console.log('📱 Pi 浏览器环境：使用真实支付充值')
+        
+        // 1. 创建 Pi 支付
+        const payment = await createPiPayment({
+          amount: pi,
+          memo: `账户充值：${pi} π`,
+          metadata: {
+            type: 'recharge',
+            amountPi: pi
+          }
+        })
+        
+        console.log('✅ Pi 支付创建成功:', payment)
+        
+        // 2. 完成支付（用户确认后）
+        const result = await completePiPayment(payment)
+        console.log('✅ Pi 支付完成:', result)
+        
+        // 3. 支付成功后调用后端充值接口
+        await api.post('/users/recharge', { 
+          amountPi: pi,
+          paymentId: payment.identifier,
+          paymentData: {
+            identifier: payment.identifier,
+            amount: payment.amount,
+            memo: payment.memo,
+            metadata: payment.metadata,
+            status: result.status,
+            transaction: result.transaction
+          }
+        })
+        
+        alert('充值成功！')
+        setRechargePi('')
+        await load()
+        setShowPiRechargeModal(false)
+      } else {
+        // 非 Pi 浏览器环境，使用模拟充值
+        console.log('🖥️ 非 Pi 浏览器环境：使用模拟充值')
+        await api.post('/users/recharge', { amountPi: pi })
+        alert('模拟充值成功！')
+        setRechargePi('')
+        await load()
+        setShowPiRechargeModal(false)
+      }
+    } catch (error) {
+      console.error('❌ 充值失败:', error)
+      alert(`充值失败: ${error.message || '未知错误'}`)
+    } finally {
+      setLoading(false)
     }
   }
 
