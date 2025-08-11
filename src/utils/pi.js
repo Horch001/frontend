@@ -173,10 +173,22 @@ export async function loginWithPi() {
     console.log('🖥️ 桌面开发环境：使用模拟登录')
     const mock = `pi:${Date.now()}:guest`
     try {
+      console.log('📤 发送登录请求:', {
+        url: `${api.defaults.baseURL}/auth/pi/login`,
+        data: { piToken: mock }
+      })
       const res = await api.post('/auth/pi/login', { piToken: mock })
+      console.log('✅ 登录响应:', res.data)
       return res.data.data
     } catch (error) {
       console.error('❌ 模拟登录失败:', error)
+      console.error('❌ 错误详情:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: error.config
+      })
       throw new Error(`模拟登录失败: ${error.response?.data?.message || error.message}`)
     }
   }
