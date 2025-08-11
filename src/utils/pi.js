@@ -212,13 +212,38 @@ export async function createPiPayment(paymentData) {
       memo: paymentData.memo,
       metadata: paymentData.metadata || {}
     }, {
-      onReadyForServerApproval: (paymentId) => {
+      onReadyForServerApproval: async (paymentId) => {
         console.log('✅ 支付准备就绪，等待服务器批准:', paymentId)
-        // 这里可以调用后端API进行支付验证
+        try {
+          // 调用后端API批准支付
+          const response = await api.post('/users/approve-payment', {
+            paymentId: paymentId,
+            amount: paymentData.amount,
+            memo: paymentData.memo,
+            metadata: paymentData.metadata
+          })
+          console.log('✅ 服务器批准支付成功:', response.data)
+        } catch (error) {
+          console.error('❌ 服务器批准支付失败:', error)
+          throw new Error('支付批准失败，请重试')
+        }
       },
-      onReadyForServerCompletion: (paymentId, txid) => {
+      onReadyForServerCompletion: async (paymentId, txid) => {
         console.log('✅ 支付完成，交易ID:', txid)
-        // 这里可以调用后端API完成支付
+        try {
+          // 调用后端API完成支付
+          const response = await api.post('/users/complete-payment', {
+            paymentId: paymentId,
+            txid: txid,
+            amount: paymentData.amount,
+            memo: paymentData.memo,
+            metadata: paymentData.metadata
+          })
+          console.log('✅ 服务器完成支付成功:', response.data)
+        } catch (error) {
+          console.error('❌ 服务器完成支付失败:', error)
+          throw new Error('支付完成失败，请重试')
+        }
       },
       onCancel: (paymentId) => {
         console.log('❌ 用户取消支付:', paymentId)
