@@ -337,6 +337,21 @@ export default function Profile() {
             <div className="text-purple-100 text-xs">点击充值/提现</div>
           </div>
         </div>
+        
+        {/* 退出按钮 */}
+        <div className="mt-3 pt-3 border-t border-white/20">
+          <button
+            onClick={() => {
+              if (confirm('确定要退出登录吗？')) {
+                localStorage.removeItem('token')
+                window.location.href = '/login'
+              }
+            }}
+            className="w-full py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium transition-colors duration-200"
+          >
+            🚪 退出登录
+          </button>
+        </div>
       </div>
 
       {/* 财务概览卡片 */}
