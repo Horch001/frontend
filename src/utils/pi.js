@@ -230,7 +230,8 @@ export async function createPiPayment(paymentData) {
           })
           console.log('✅ 服务器批准支付成功:', response.data)
           
-          // 后端API调用成功，Pi SDK会继续处理支付流程
+          // 根据Pi官方文档，需要返回批准状态
+          return { approved: true }
         } catch (error) {
           console.error('❌ 服务器批准支付失败:', error)
           // 不要抛出异常，而是返回错误状态，让Pi SDK处理
