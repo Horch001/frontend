@@ -157,6 +157,18 @@ export default function Profile() {
           return
         }
         
+        // 检查用户是否已认证
+        if (!window.Pi.currentUser) {
+          alert('请先登录 Pi 账户，点击确定进行认证')
+          try {
+            await window.Pi.authenticate(['payments'])
+            console.log('✅ 用户认证成功')
+          } catch (authError) {
+            alert('Pi 认证失败，请确保已登录 Pi 账户')
+            return
+          }
+        }
+        
         try {
           // 1. 创建 Pi 支付
           const payment = await createPiPayment({

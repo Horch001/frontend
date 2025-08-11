@@ -156,12 +156,7 @@ export async function createPiPayment(paymentData) {
     
     // 检查用户是否已认证
     if (!window.Pi.currentUser) {
-      console.log('🔐 用户未认证，先进行认证...')
-      try {
-        await window.Pi.authenticate(['payments'], onIncompletePaymentFound)
-      } catch (authError) {
-        throw new Error('Pi 认证失败，请确保已登录 Pi 账户')
-      }
+      throw new Error('用户未认证，请先进行 Pi 认证')
     }
     
     console.log('📤 创建 Pi 支付，参数:', paymentData)
