@@ -27,10 +27,21 @@ export default function DebugPanel() {
   useEffect(() => {
     // 检查Pi SDK状态
     const checkPiSDK = () => {
+      const hasPi = typeof window !== 'undefined' && window.Pi
+      const hasCurrentUser = hasPi && window.Pi.currentUser
+      const hasLocalStorageToken = localStorage.getItem('token')
+      
+      let authStatus = 'not authenticated'
+      if (hasCurrentUser) {
+        authStatus = 'authenticated'
+      } else if (hasLocalStorageToken) {
+        authStatus = 'token exists'
+      }
+      
       setDebugInfo(prev => ({
         ...prev,
-        piSDK: typeof window !== 'undefined' && window.Pi ? 'loaded' : 'not loaded',
-        currentUser: typeof window !== 'undefined' && window.Pi && window.Pi.currentUser ? 'authenticated' : 'not authenticated'
+        piSDK: hasPi ? 'loaded' : 'not loaded',
+        currentUser: authStatus
       }))
     }
 

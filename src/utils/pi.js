@@ -130,22 +130,28 @@ function handlePiError(error, context) {
       let username = null
       let uid = null
       
+      // 首先尝试获取UID
+      if (auth?.user?.uid) {
+        uid = auth.user.uid
+        console.log('✅ 从 auth.user 获取到UID:', uid)
+      } else if (auth?.currentUser?.uid) {
+        uid = auth.currentUser.uid
+        console.log('✅ 从 auth.currentUser 获取到UID:', uid)
+      }
+      
+      // 然后尝试获取用户名
       if (auth?.user?.username) {
         username = auth.user.username
-        uid = auth.user.uid
         console.log('✅ 从 auth.user 获取到用户名:', username)
       } else if (auth?.currentUser?.username) {
         username = auth.currentUser.username
-        uid = auth.currentUser.uid
         console.log('✅ 从 auth.currentUser 获取到用户名:', username)
-      } else if (auth?.user?.uid) {
-        uid = auth.user.uid
-        username = `user_${uid}` // 使用UID作为用户名
-        console.log('⚠️ 未找到用户名，使用UID作为用户名:', username)
-      } else if (auth?.currentUser?.uid) {
-        uid = auth.currentUser.uid
-        username = `user_${uid}` // 使用UID作为用户名
-        console.log('⚠️ 未找到用户名，使用UID作为用户名:', username)
+      }
+      
+      // 如果Pi SDK没有提供用户名，我们需要从后端获取
+      if (!username && uid) {
+        console.log('⚠️ Pi SDK未提供用户名，将使用UID作为临时用户名，后端会处理真实用户名获取')
+        username = `temp_${uid}` // 临时用户名，后端会替换为真实用户名
       }
       
       if (!username || !uid) {
