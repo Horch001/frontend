@@ -6,105 +6,20 @@
     <title>Pi 交易平台</title>
     <!-- Pi SDK -->
     <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-    <script>
-      // 从后端获取配置并初始化 Pi SDK
-      async function initPiSDK() {
-        try {
-          console.log('🔧 开始初始化 Pi SDK...');
-          
-          // 检查 Pi SDK 是否已加载
-          if (typeof Pi === 'undefined') {
-            console.error('❌ Pi SDK 未加载');
-            // 显示用户友好的错误信息
-            showSDKError('Pi SDK 加载失败，请刷新页面重试');
-            return;
-          }
-          
-          // 获取后端配置
-          const apiBase = 'https://hou.zeabur.app';
-          let config = { piSandbox: false }; // 默认配置
-          
-          try {
-            const response = await fetch(`${apiBase}/config/frontend`);
-            if (response.ok) {
-              const data = await response.json();
-              config = data.data.config;
-            }
-          } catch (configError) {
-            console.warn('⚠️ 获取后端配置失败，使用默认配置:', configError);
-          }
-          
-          // 确定是否使用沙盒模式
-          const isSandbox = config.piSandbox || false;
-          
-          console.log('🔧 Pi SDK 配置:', {
-            version: "2.0",
-            sandbox: isSandbox,
-            hostname: window.location.hostname,
-            backendConfig: config
-          });
-          
-          // 初始化 Pi SDK
-          Pi.init({ 
-            version: "2.0",
-            sandbox: isSandbox
-          });
-          
-          // 等待Pi SDK完全加载
-          setTimeout(() => {
-            console.log('✅ Pi SDK 完全加载完成');
-          }, 1000);
-          
-          console.log('✅ Pi SDK 初始化完成', {
-            sandbox: isSandbox,
-            backendConfig: config,
-            hostname: window.location.hostname,
-            Pi: typeof Pi,
-            PiAuthenticate: typeof Pi.authenticate,
-            PiCreatePayment: typeof Pi.createPayment
-          });
-          
-        } catch (error) {
-          console.error('❌ Pi SDK 初始化失败:', error);
-          showSDKError('Pi SDK 初始化失败，请刷新页面重试');
-        }
-      }
-      
-      // 显示 SDK 错误信息
-      function showSDKError(message) {
-        // 创建一个简单的错误提示
-        const errorDiv = document.createElement('div');
-        errorDiv.style.cssText = `
-          position: fixed;
-          top: 10px;
-          left: 10px;
-          right: 10px;
-          background: #ef4444;
-          color: white;
-          padding: 10px;
-          border-radius: 8px;
-          z-index: 9999;
-          font-size: 14px;
-          text-align: center;
-        `;
-        errorDiv.textContent = message;
-        document.body.appendChild(errorDiv);
-        
-        // 3秒后自动移除
-        setTimeout(() => {
-          if (errorDiv.parentNode) {
-            errorDiv.parentNode.removeChild(errorDiv);
-          }
-        }, 3000);
-      }
-      
-      // 页面加载完成后初始化
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initPiSDK);
-      } else {
-        initPiSDK();
-      }
-    </script>
+         <script>
+       // Ensure Pi SDK is loaded before initializing
+       window.addEventListener('load', () => {
+         if (typeof Pi !== 'undefined') {
+           Pi.init({
+             version: "2.0",
+             sandbox: false,
+             scope: ['username', 'payments']
+           });
+         } else {
+           console.error('Pi SDK not loaded.');
+         }
+       });
+     </script>
   </head>
   <body class="bg-gray-50 dark:bg-gray-900">
     <div id="root"></div>

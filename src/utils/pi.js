@@ -108,8 +108,8 @@ async function authenticateWithPi() {
       currentUser: window.Pi?.currentUser
     })
     
-    // 根据Pi官方文档，请求payments权限
-    const auth = await window.Pi.authenticate(['payments'], onIncompletePaymentFound)
+    // 根据Pi官方文档，请求username和payments权限
+    const auth = await window.Pi.authenticate(['username', 'payments'], onIncompletePaymentFound)
     
     console.log('✅ Pi 认证成功，完整数据结构:', JSON.stringify(auth, null, 2))
     
