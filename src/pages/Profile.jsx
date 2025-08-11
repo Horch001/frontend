@@ -151,6 +151,12 @@ export default function Profile() {
       if (isPiBrowser()) {
         console.log('📱 Pi 浏览器环境：使用真实支付充值')
         
+        // 先检查 Pi SDK 状态
+        if (!window.Pi) {
+          alert('Pi SDK 未加载，请刷新页面重试')
+          return
+        }
+        
         try {
           // 1. 创建 Pi 支付
           const payment = await createPiPayment({

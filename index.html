@@ -15,22 +15,33 @@
           // 检查 Pi SDK 是否已加载
           if (typeof Pi === 'undefined') {
             console.error('❌ Pi SDK 未加载');
+            // 显示用户友好的错误信息
+            showSDKError('Pi SDK 加载失败，请刷新页面重试');
             return;
           }
           
           // 获取后端配置
           const apiBase = 'https://hou.zeabur.app';
-          const response = await fetch(`${apiBase}/config/frontend`);
-          const data = await response.json();
-          const config = data.data.config;
+          let config = { piSandbox: false }; // 默认配置
           
-          // 确定是否使用沙盒模式（生产环境强制使用真实模式）
-          const isSandbox = false; // 生产环境强制使用真实模式
+          try {
+            const response = await fetch(`${apiBase}/config/frontend`);
+            if (response.ok) {
+              const data = await response.json();
+              config = data.data.config;
+            }
+          } catch (configError) {
+            console.warn('⚠️ 获取后端配置失败，使用默认配置:', configError);
+          }
+          
+          // 确定是否使用沙盒模式
+          const isSandbox = config.piSandbox || false;
           
           console.log('🔧 Pi SDK 配置:', {
             version: "2.0",
             sandbox: isSandbox,
-            hostname: window.location.hostname
+            hostname: window.location.hostname,
+            backendConfig: config
           });
           
           // 初始化 Pi SDK
@@ -49,22 +60,37 @@
           });
           
         } catch (error) {
-          console.error('❌ 获取配置失败，使用默认配置:', error);
-          
-          // 降级处理：使用默认配置（生产环境强制使用真实模式）
-          const fallbackSandbox = false; // 生产环境强制使用真实模式
-          
-          if (typeof Pi !== 'undefined') {
-            Pi.init({ 
-              version: "2.0",
-              sandbox: fallbackSandbox
-            });
-            
-            console.log('🔄 使用默认配置，沙盒模式:', fallbackSandbox);
-          } else {
-            console.error('❌ Pi SDK 未加载，无法初始化');
-          }
+          console.error('❌ Pi SDK 初始化失败:', error);
+          showSDKError('Pi SDK 初始化失败，请刷新页面重试');
         }
+      }
+      
+      // 显示 SDK 错误信息
+      function showSDKError(message) {
+        // 创建一个简单的错误提示
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = `
+          position: fixed;
+          top: 10px;
+          left: 10px;
+          right: 10px;
+          background: #ef4444;
+          color: white;
+          padding: 10px;
+          border-radius: 8px;
+          z-index: 9999;
+          font-size: 14px;
+          text-align: center;
+        `;
+        errorDiv.textContent = message;
+        document.body.appendChild(errorDiv);
+        
+        // 3秒后自动移除
+        setTimeout(() => {
+          if (errorDiv.parentNode) {
+            errorDiv.parentNode.removeChild(errorDiv);
+          }
+        }, 3000);
       }
       
       // 页面加载完成后初始化

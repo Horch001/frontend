@@ -13,6 +13,7 @@ import ModifyPrice from './pages/ModifyPrice'
 import AdminLayout from './pages/admin/AdminLayout'
 import Header from './components/Header'
 import BottomNav from './components/BottomNav'
+import DebugPanel from './components/DebugPanel'
 import { useAuth } from './context/AuthContext'
 
 function PrivateRoute({ children }) {
@@ -47,6 +48,7 @@ export default function App() {
         </Routes>
       </main>
       {!isChatPage && !isAdminPage && <BottomNav />}
+      <DebugPanel />
     </div>
   )
 }

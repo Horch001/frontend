@@ -149,6 +149,24 @@ export async function createPiPayment(paymentData) {
       throw new Error('支付备注不能为空')
     }
     
+    // 检查 Pi SDK 是否可用
+    if (!window.Pi) {
+      throw new Error('Pi SDK 未加载，请刷新页面重试')
+    }
+    
+    // 检查用户是否已认证
+    if (!window.Pi.currentUser) {
+      console.log('🔐 用户未认证，先进行认证...')
+      try {
+        await window.Pi.authenticate(['payments'], onIncompletePaymentFound)
+      } catch (authError) {
+        throw new Error('Pi 认证失败，请确保已登录 Pi 账户')
+      }
+    }
+    
+    console.log('📤 创建 Pi 支付，参数:', paymentData)
+    console.log('👤 当前用户:', window.Pi.currentUser)
+    
     // 根据官方文档创建支付
     const payment = await window.Pi.createPayment({
       amount: paymentData.amount,
@@ -159,8 +177,24 @@ export async function createPiPayment(paymentData) {
     console.log('✅ Pi 支付创建成功:', payment)
     return payment
   } catch (error) {
-    const errorInfo = handlePiError(error, '支付创建')
-    throw new Error(errorInfo.userMessage)
+    console.error('❌ Pi 支付创建失败，详细错误:', error)
+    
+    // 提供更具体的错误信息
+    let userMessage = '支付创建失败，请重试'
+    
+    if (error.message?.includes('not authenticated')) {
+      userMessage = '请先登录 Pi 账户'
+    } else if (error.message?.includes('SDK 未加载')) {
+      userMessage = 'Pi SDK 未加载，请刷新页面重试'
+    } else if (error.message?.includes('认证失败')) {
+      userMessage = 'Pi 认证失败，请确保已登录 Pi 账户'
+    } else if (error.code === 'user_cancelled') {
+      userMessage = '用户取消了支付'
+    } else if (error.code === 'network_error') {
+      userMessage = '网络连接失败，请检查网络'
+    }
+    
+    throw new Error(userMessage)
   }
 }
 
