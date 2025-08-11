@@ -102,11 +102,8 @@ export default function Profile() {
         await load()
         setShowDepositModal(false)
       } else {
-        // 非 Pi 浏览器环境，使用模拟押金
-        console.log('🖥️ 非 Pi 浏览器环境：使用模拟押金')
-        await api.post('/users/deposit/pay')
-        alert('模拟押金缴纳成功！')
-        await load()
+        // 非 Pi 浏览器环境，提示用户
+        alert('请在 Pi 浏览器中打开此页面进行押金缴纳')
         setShowDepositModal(false)
       }
     } catch (error) {
@@ -189,12 +186,8 @@ export default function Profile() {
         await load()
         setShowPiRechargeModal(false)
       } else {
-        // 非 Pi 浏览器环境，使用模拟充值
-        console.log('🖥️ 非 Pi 浏览器环境：使用模拟充值')
-        await api.post('/users/recharge', { amountPi: pi })
-        alert('模拟充值成功！')
-        setRechargePi('')
-        await load()
+        // 非 Pi 浏览器环境，提示用户
+        alert('请在 Pi 浏览器中打开此页面进行充值')
         setShowPiRechargeModal(false)
       }
     } catch (error) {
@@ -370,7 +363,7 @@ export default function Profile() {
                     {transaction.reason}
                   </div>
                   <div className={`font-medium ${transaction.type === 'increase' ? 'text-green-600' : 'text-red-600'}`}>
-                    {transaction.type === 'increase' ? '+' : '-'}{Math.abs(w.amountPoints)}
+                    {transaction.type === 'increase' ? '+' : '-'}{Math.abs(w.amount || w.amountPoints || 0)}
                   </div>
                 </div>
                 <div className="flex items-center justify-between">

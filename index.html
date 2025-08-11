@@ -10,17 +10,28 @@
       // 从后端获取配置并初始化 Pi SDK
       async function initPiSDK() {
         try {
+          console.log('🔧 开始初始化 Pi SDK...');
+          
+          // 检查 Pi SDK 是否已加载
+          if (typeof Pi === 'undefined') {
+            console.error('❌ Pi SDK 未加载');
+            return;
+          }
+          
           // 获取后端配置
           const apiBase = 'https://hou.zeabur.app';
           const response = await fetch(`${apiBase}/config/frontend`);
           const data = await response.json();
           const config = data.data.config;
           
-          // 确定是否使用沙盒模式
-          const isSandbox = config.piSandbox || 
-                           window.location.hostname === 'localhost' || 
-                           window.location.hostname === '127.0.0.1' ||
-                           window.location.search.includes('sandbox=true');
+          // 确定是否使用沙盒模式（生产环境强制使用真实模式）
+          const isSandbox = false; // 生产环境强制使用真实模式
+          
+          console.log('🔧 Pi SDK 配置:', {
+            version: "2.0",
+            sandbox: isSandbox,
+            hostname: window.location.hostname
+          });
           
           // 初始化 Pi SDK
           Pi.init({ 
@@ -28,25 +39,31 @@
             sandbox: isSandbox
           });
           
-          console.log('🔧 Pi SDK 初始化完成', {
+          console.log('✅ Pi SDK 初始化完成', {
             sandbox: isSandbox,
             backendConfig: config,
-            hostname: window.location.hostname
+            hostname: window.location.hostname,
+            Pi: typeof Pi,
+            PiAuthenticate: typeof Pi.authenticate,
+            PiCreatePayment: typeof Pi.createPayment
           });
           
         } catch (error) {
           console.error('❌ 获取配置失败，使用默认配置:', error);
           
-          // 降级处理：使用默认配置
-          const fallbackSandbox = window.location.hostname === 'localhost' || 
-                                 window.location.hostname === '127.0.0.1';
+          // 降级处理：使用默认配置（生产环境强制使用真实模式）
+          const fallbackSandbox = false; // 生产环境强制使用真实模式
           
-          Pi.init({ 
-            version: "2.0",
-            sandbox: fallbackSandbox
-          });
-          
-          console.log('🔄 使用默认配置，沙盒模式:', fallbackSandbox);
+          if (typeof Pi !== 'undefined') {
+            Pi.init({ 
+              version: "2.0",
+              sandbox: fallbackSandbox
+            });
+            
+            console.log('🔄 使用默认配置，沙盒模式:', fallbackSandbox);
+          } else {
+            console.error('❌ Pi SDK 未加载，无法初始化');
+          }
         }
       }
       

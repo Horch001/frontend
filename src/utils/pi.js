@@ -2,9 +2,19 @@ import { api } from '../api'
 
 // 检测是否为 Pi 浏览器环境
 function isPiBrowser() {
+  console.log('🔍 Pi 浏览器检测:', {
+    hasWindow: typeof window !== 'undefined',
+    hasPi: typeof window !== 'undefined' && window.Pi,
+    hasAuthenticate: typeof window !== 'undefined' && window.Pi && window.Pi.authenticate,
+    hasCreatePayment: typeof window !== 'undefined' && window.Pi && window.Pi.createPayment,
+    userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'no window',
+    hostname: typeof window !== 'undefined' ? window.location.hostname : 'no window'
+  })
+  
   return typeof window !== 'undefined' && 
          window.Pi && 
          window.Pi.authenticate &&
+         window.Pi.createPayment &&
          // 检查是否在 Pi 浏览器中运行
          (window.navigator.userAgent.includes('PiBrowser') || 
           window.location.hostname.includes('minepi.com') ||
@@ -88,19 +98,31 @@ function handlePiError(error, context) {
   }
 }
 
-// 真实的 Pi 登录
-async function authenticateWithPi() {
-  try {
-    // 根据官方文档，只请求 payments 权限
-    const auth = await window.Pi.authenticate(['payments'], onIncompletePaymentFound)
-    
-    console.log('✅ Pi 认证成功:', auth)
-    return auth
-  } catch (error) {
-    const errorInfo = handlePiError(error, '认证')
-    throw new Error(errorInfo.userMessage)
+  // 真实的 Pi 登录
+  async function authenticateWithPi() {
+    try {
+      // 根据官方文档，只请求 payments 权限
+      const auth = await window.Pi.authenticate(['payments'], onIncompletePaymentFound)
+      
+      console.log('✅ Pi 认证成功:', {
+        user: auth.user,
+        accessToken: auth.accessToken ? 'present' : 'missing',
+        currentUser: auth.currentUser
+      })
+      
+      // 验证用户名是否存在
+      if (!auth.user || !auth.user.username) {
+        console.error('❌ Pi 认证数据中缺少用户名:', auth)
+        throw new Error('Pi 认证数据中缺少用户名信息')
+      }
+      
+      console.log('✅ 确认用户名存在:', auth.user.username)
+      return auth
+    } catch (error) {
+      const errorInfo = handlePiError(error, '认证')
+      throw new Error(errorInfo.userMessage)
+    }
   }
-}
 
 // 处理未完成的支付
 function onIncompletePaymentFound(payment) {
@@ -168,70 +190,37 @@ export async function loginWithPi() {
     userAgent: navigator.userAgent
   })
 
-  // 如果应该使用模拟登录（桌面开发环境）
+  // 生产环境强制使用真实 Pi 登录
   if (shouldUseMock()) {
-    console.log('🖥️ 桌面开发环境：使用模拟登录')
-    const mock = `pi:${Date.now()}:guest`
-    try {
-      console.log('📤 发送登录请求:', {
-        url: `${api.defaults.baseURL}/auth/pi/login`,
-        data: { piToken: mock }
-      })
-      const res = await api.post('/auth/pi/login', { piToken: mock })
-      console.log('✅ 登录响应:', res.data)
-      return res.data.data
-    } catch (error) {
-      console.error('❌ 模拟登录失败:', error)
-      console.error('❌ 错误详情:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        config: error.config
-      })
-      throw new Error(`模拟登录失败: ${error.response?.data?.message || error.message}`)
-    }
+    throw new Error('请在 Pi 浏览器中打开此页面进行登录')
   }
 
   // Pi 浏览器环境：使用真实 SDK
-  try {
-    if (isPiBrowser()) {
-      console.log('📱 Pi 浏览器环境：使用真实 SDK')
-      
-      // 使用真实的 Pi 认证
-      const auth = await authenticateWithPi()
-      
-      // 构造 token 格式
-      const piToken = `pi:${auth.user.uid}:${auth.user.username || 'piuser'}`
-      
-      // 发送到后端验证
-      try {
-        const res = await api.post('/auth/pi/login', { 
-          piToken,
-          authData: auth // 包含完整的认证数据
-        })
-        
-        return res.data.data
-      } catch (error) {
-        console.error('❌ 后端验证失败:', error)
-        throw new Error(`后端验证失败: ${error.response?.data?.message || error.message}`)
-      }
-    }
-  } catch (error) {
-    console.error('❌ Pi SDK 登录失败:', error)
-    // 如果真实 SDK 失败，回退到模拟登录
-    console.log('🔄 回退到模拟登录')
-  }
-
-  // 兜底：使用模拟登录
-  console.log('🛡️ 兜底方案：使用模拟登录')
-  const mock = `pi:${Date.now()}:guest`
-  try {
-    const res = await api.post('/auth/pi/login', { piToken: mock })
+  if (isPiBrowser()) {
+    console.log('📱 Pi 浏览器环境：使用真实 SDK')
+    
+    // 使用真实的 Pi 认证
+    const auth = await authenticateWithPi()
+    
+    // 构造 token 格式
+    const piToken = `pi:${auth.user.uid}:${auth.user.username || 'piuser'}`
+    
+    console.log('📤 发送Pi认证数据到后端:', {
+      piToken,
+      authData: auth,
+      user: auth.user
+    })
+    
+    // 发送到后端验证
+    const res = await api.post('/auth/pi/login', { 
+      piToken,
+      authData: auth // 包含完整的认证数据
+    })
+    
     return res.data.data
-  } catch (error) {
-    console.error('❌ 兜底登录失败:', error)
-    throw new Error(`兜底登录失败: ${error.response?.data?.message || error.message}`)
+  } else {
+    // 非 Pi 浏览器环境，提示用户
+    throw new Error('请在 Pi 浏览器中打开此页面进行登录')
   }
 }
 
