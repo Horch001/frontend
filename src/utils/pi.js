@@ -162,19 +162,60 @@ async function authenticateWithPi() {
     const isSandbox = window.location.hostname.includes('sandbox.minepi.com') ||
                      new URLSearchParams(window.location.search).get('sandbox') === 'true'
     
-    // 在桌面浏览器中，Pi SDK 可能不会注入 authenticate 方法
-    if (isSandbox && (!window.Pi || !window.Pi.authenticate)) {
-      console.log('⚠️ 沙盒模式下 Pi SDK 方法不可用，使用模拟认证')
-      // 在沙盒模式下，如果 Pi SDK 方法不可用，使用模拟认证
-      return {
-        user: {
-          uid: 'sandbox_user_' + Date.now(),
-          username: 'sandbox_user',
-          name: '沙盒用户',
-          displayName: '沙盒用户'
-        },
-        accessToken: 'sandbox_token_' + Date.now()
+    // 在沙盒模式下，尝试使用真实的 Pi SDK 认证
+    if (isSandbox) {
+      console.log('🔍 沙盒模式检测到，尝试使用真实 Pi SDK 认证')
+      
+      // 等待一下，确保 Pi SDK 完全加载
+      if (!window.Pi.authenticate) {
+        console.log('⏳ 等待 Pi SDK 方法注入...')
+        // 等待最多 3 秒
+        for (let i = 0; i < 30; i++) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          if (window.Pi.authenticate) {
+            console.log('✅ Pi SDK authenticate 方法已注入')
+            break
+          }
+        }
       }
+      
+      // 如果仍然没有 authenticate 方法，尝试其他可能的 API
+      if (!window.Pi.authenticate) {
+        console.log('🔍 检查 Pi SDK 的其他认证方法...')
+        console.log('🔍 Pi SDK 可用方法:', Object.keys(window.Pi))
+        
+        // 尝试使用 currentUser 或其他方法
+        if (window.Pi.currentUser) {
+          console.log('✅ 使用 currentUser 进行认证')
+          return {
+            user: {
+              uid: window.Pi.currentUser.uid || 'sandbox_user_' + Date.now(),
+              username: window.Pi.currentUser.username || 'sandbox_user',
+              name: window.Pi.currentUser.name || '沙盒用户',
+              displayName: window.Pi.currentUser.displayName || '沙盒用户'
+            },
+            accessToken: 'sandbox_token_' + Date.now()
+          }
+        }
+        
+        // 如果都没有，使用模拟认证
+        console.log('⚠️ 无法找到可用的认证方法，使用模拟认证')
+        return {
+          user: {
+            uid: 'sandbox_user_' + Date.now(),
+            username: 'sandbox_user',
+            name: '沙盒用户',
+            displayName: '沙盒用户'
+          },
+          accessToken: 'sandbox_token_' + Date.now()
+        }
+      }
+    }
+    
+    // 检查 authenticate 方法是否存在
+    if (!window.Pi.authenticate) {
+      console.log('❌ Pi SDK authenticate 方法不存在')
+      throw new Error('Pi SDK 认证方法不可用，请在 Pi 浏览器中打开此页面')
     }
     
     // 根据Pi官方文档，请求username和payments权限
