@@ -2,22 +2,40 @@ import { api } from '../api'
 
 // 检测是否为 Pi 浏览器环境
 function isPiBrowser() {
-  console.log('🔍 Pi 浏览器检测:', {
+  const debugInfo = {
     hasWindow: typeof window !== 'undefined',
     hasPi: typeof window !== 'undefined' && window.Pi,
     hasAuthenticate: typeof window !== 'undefined' && window.Pi && window.Pi.authenticate,
     hasCreatePayment: typeof window !== 'undefined' && window.Pi && window.Pi.createPayment,
     userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'no window',
-    hostname: typeof window !== 'undefined' ? window.location.hostname : 'no window'
-  })
+    hostname: typeof window !== 'undefined' ? window.location.hostname : 'no window',
+    // 添加更详细的 Pi 对象信息
+    piKeys: typeof window !== 'undefined' && window.Pi ? Object.keys(window.Pi) : [],
+    piType: typeof window !== 'undefined' && window.Pi ? typeof window.Pi : 'undefined'
+  }
+  
+  console.log('🔍 Pi 浏览器检测:', debugInfo)
   
   // 检查 Pi SDK 是否可用
-  const hasPiSDK = typeof window !== 'undefined' && 
-                   window.Pi && 
-                   window.Pi.authenticate &&
-                   window.Pi.createPayment
+  const hasPiSDK = typeof window !== 'undefined' && window.Pi
   
-  if (!hasPiSDK) {
+  // 检查是否在沙盒环境中
+  const isSandbox = window.location.hostname.includes('sandbox.minepi.com') ||
+                   new URLSearchParams(window.location.search).get('sandbox') === 'true'
+  
+  // 在沙盒模式下，只要 window.Pi 存在就认为可用
+  if (isSandbox && hasPiSDK) {
+    console.log('✅ 沙盒模式检测到，强制允许使用 Pi SDK')
+    console.log('⚠️ 注意：在桌面浏览器中，Pi SDK 可能不会注入完整的方法')
+    return true
+  }
+  
+  // 非沙盒模式下，需要完整的方法
+  const hasFullPiSDK = hasPiSDK && 
+                       window.Pi.authenticate &&
+                       window.Pi.createPayment
+  
+  if (!hasFullPiSDK) {
     return false
   }
   
@@ -28,10 +46,6 @@ function isPiBrowser() {
   // 检查是否为移动设备
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   
-  // 检查是否在沙盒环境中（通过 URL 参数或域名判断）
-  const isSandbox = window.location.hostname.includes('sandbox.minepi.com') ||
-                   new URLSearchParams(window.location.search).get('sandbox') === 'true'
-  
   console.log('🔍 环境检测结果:', {
     hasPiSDK,
     isInPiBrowser,
@@ -39,9 +53,10 @@ function isPiBrowser() {
     isSandbox
   })
   
-  // 在沙盒模式下，只要 Pi SDK 可用就认为是有效的 Pi 环境
+  // 在沙盒模式下，强制允许使用 Pi SDK（即使某些方法可能不可用）
   if (isSandbox) {
-    console.log('✅ 沙盒模式检测到，允许使用 Pi SDK')
+    console.log('✅ 沙盒模式检测到，强制允许使用 Pi SDK')
+    console.log('⚠️ 注意：在桌面浏览器中，Pi SDK 可能不会注入完整的方法')
     return true
   }
   
@@ -142,6 +157,25 @@ async function authenticateWithPi() {
       hasAuthenticate: !!window.Pi?.authenticate,
       currentUser: window.Pi?.currentUser
     })
+    
+    // 检查是否在沙盒环境中
+    const isSandbox = window.location.hostname.includes('sandbox.minepi.com') ||
+                     new URLSearchParams(window.location.search).get('sandbox') === 'true'
+    
+    // 在桌面浏览器中，Pi SDK 可能不会注入 authenticate 方法
+    if (isSandbox && (!window.Pi || !window.Pi.authenticate)) {
+      console.log('⚠️ 沙盒模式下 Pi SDK 方法不可用，使用模拟认证')
+      // 在沙盒模式下，如果 Pi SDK 方法不可用，使用模拟认证
+      return {
+        user: {
+          uid: 'sandbox_user_' + Date.now(),
+          username: 'sandbox_user',
+          name: '沙盒用户',
+          displayName: '沙盒用户'
+        },
+        accessToken: 'sandbox_token_' + Date.now()
+      }
+    }
     
     // 根据Pi官方文档，请求username和payments权限
     const auth = await window.Pi.authenticate(['username', 'payments'], onIncompletePaymentFound)
