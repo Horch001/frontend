@@ -9,15 +9,35 @@
          <script>
        // Ensure Pi SDK is loaded before initializing
        window.addEventListener('load', () => {
+         console.log('🔍 检查 Pi SDK 加载状态...')
+         console.log('🔍 Pi 对象:', typeof Pi)
+         console.log('🔍 window.Pi 对象:', typeof window.Pi)
+         
          if (typeof Pi !== 'undefined') {
-                       Pi.init({
-              version: "2.0",
-              sandbox: true,
-              scope: ['username', 'payments']
-            });
+           console.log('✅ 使用 Pi.init() 初始化')
+           Pi.init({
+             version: "2.0",
+             sandbox: true,
+             scope: ['username', 'payments']
+           });
+         } else if (typeof window.Pi !== 'undefined') {
+           console.log('✅ 使用 window.Pi.init() 初始化')
+           window.Pi.init({
+             version: "2.0",
+             sandbox: true,
+             scope: ['username', 'payments']
+           });
          } else {
-           console.error('Pi SDK not loaded.');
+           console.error('❌ Pi SDK not loaded.');
          }
+         
+         // 延迟检查初始化结果
+         setTimeout(() => {
+           console.log('🔍 初始化后检查 Pi SDK 状态:')
+           console.log('🔍 window.Pi:', !!window.Pi)
+           console.log('🔍 window.Pi.authenticate:', !!window.Pi?.authenticate)
+           console.log('🔍 window.Pi.createPayment:', !!window.Pi?.createPayment)
+         }, 1000)
        });
      </script>
   </head>

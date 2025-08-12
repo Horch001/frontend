@@ -219,7 +219,27 @@ async function authenticateWithPi() {
     }
     
     // 根据Pi官方文档，请求username和payments权限
-    const auth = await window.Pi.authenticate(['username', 'payments'], onIncompletePaymentFound)
+    console.log('🔐 准备调用 Pi.authenticate...')
+    console.log('🔍 authenticate 方法详情:', {
+      method: typeof window.Pi.authenticate,
+      isFunction: typeof window.Pi.authenticate === 'function',
+      toString: window.Pi.authenticate.toString()
+    })
+    
+    let auth
+    try {
+      auth = await window.Pi.authenticate(['username', 'payments'], onIncompletePaymentFound)
+      console.log('✅ Pi.authenticate 调用成功')
+    } catch (authError) {
+      console.error('❌ Pi.authenticate 调用失败:', authError)
+      console.error('❌ 错误详情:', {
+        name: authError.name,
+        message: authError.message,
+        code: authError.code,
+        stack: authError.stack
+      })
+      throw authError
+    }
     
     console.log('✅ Pi 认证成功，完整数据结构:', JSON.stringify(auth, null, 2))
     
