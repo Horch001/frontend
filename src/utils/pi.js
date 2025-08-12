@@ -11,15 +11,41 @@ function isPiBrowser() {
     hostname: typeof window !== 'undefined' ? window.location.hostname : 'no window'
   })
   
-  return typeof window !== 'undefined' && 
-         window.Pi && 
-         window.Pi.authenticate &&
-         window.Pi.createPayment &&
-         // 检查是否在 Pi 浏览器中运行
-         (window.navigator.userAgent.includes('PiBrowser') || 
-          window.location.hostname.includes('minepi.com') ||
-          // 移动设备检测
-          /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))
+  // 检查 Pi SDK 是否可用
+  const hasPiSDK = typeof window !== 'undefined' && 
+                   window.Pi && 
+                   window.Pi.authenticate &&
+                   window.Pi.createPayment
+  
+  if (!hasPiSDK) {
+    return false
+  }
+  
+  // 检查是否在 Pi 浏览器中运行
+  const isInPiBrowser = window.navigator.userAgent.includes('PiBrowser') || 
+                       window.location.hostname.includes('minepi.com')
+  
+  // 检查是否为移动设备
+  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  
+  // 检查是否在沙盒环境中（通过 URL 参数或域名判断）
+  const isSandbox = window.location.hostname.includes('sandbox.minepi.com') ||
+                   new URLSearchParams(window.location.search).get('sandbox') === 'true'
+  
+  console.log('🔍 环境检测结果:', {
+    hasPiSDK,
+    isInPiBrowser,
+    isMobile,
+    isSandbox
+  })
+  
+  // 在沙盒模式下，只要 Pi SDK 可用就认为是有效的 Pi 环境
+  if (isSandbox) {
+    console.log('✅ 沙盒模式检测到，允许使用 Pi SDK')
+    return true
+  }
+  
+  return isInPiBrowser || isMobile
 }
 
 // 检测是否为开发环境
@@ -44,7 +70,16 @@ function shouldUseMock() {
     return true
   }
 
-  // 3. 开发环境下，桌面端强制使用模拟登录
+  // 3. 检查是否在沙盒环境中
+  const isSandbox = window.location.hostname.includes('sandbox.minepi.com') ||
+                   new URLSearchParams(window.location.search).get('sandbox') === 'true'
+  
+  if (isSandbox) {
+    console.log('🔧 沙盒模式检测到，不使用模拟登录')
+    return false
+  }
+
+  // 4. 开发环境下，桌面端强制使用模拟登录
   return isDevelopment() && !isPiBrowser()
 }
 
